@@ -35,9 +35,10 @@ from logging import getLogger
 
 from kombu import Queue
 
+from nameko import config
 from nameko.messaging import Consumer, Publisher, encode_to_headers
 from nameko.standalone.events import get_event_exchange
-
+from nameko.constants import QUEUE_MAX_PRIORITY_CONFIG_KEY
 
 SERVICE_POOL = "service_pool"
 SINGLETON = "singleton"
@@ -259,9 +260,15 @@ class EventHandler(Consumer):
         if self.reliable_delivery:
             exclusive = False
 
+        queue_extra_attributes = {}
+        max_priority = config.get(QUEUE_MAX_PRIORITY_CONFIG_KEY)
+        if (max_priority is not None):
+            queue_extra_attributes["max_priority"] = max_priority
+
         self.queue = Queue(
             queue_name, exchange=exchange, routing_key=self.event_type,
-            durable=True, auto_delete=auto_delete, exclusive=exclusive)
+            durable=True, auto_delete=auto_delete, exclusive=exclusive,
+            **queue_extra_attributes)
 
         super(EventHandler, self).setup()
 
